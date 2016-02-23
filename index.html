@@ -11,6 +11,23 @@
         <link rel="stylesheet" href="css/style.css"/>
     </head>
     <body>
+        <section class="demo">
+            <input type="file" value="Upload Image file"/>
+            <article class="original">
+                <p class="title">Original Image</p>
+                <img src="" alt="original image"/>
+            </article>
+            <article class="edit-image">
+                <p class="title">Edit Image</p>
+                <img src="" alt="edit-image"/>
+            </article>
+        </section>
+        <button>Finish</button>
+        <p class="title">FinalImage Image</p>
+        <canvas id="final-canvas">
+            Your browser is not support canvas as well as this libs. Please try firefox or chrome instead
+        </canvas>
+
         <script src="libs/jquery.js"></script>
         <script src="libs/TweenMax.min.js"></script>
         <script src="js/custom-image-with-control.js" async></script>

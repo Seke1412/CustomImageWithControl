@@ -2,4 +2,21 @@
   margin: 0px;
   padding: 0px; }
 
+.title {
+  font-family: Roboto;
+  color: crimson;
+  margin-top: 20px;
+  font-size: 20px; }
+
+.demo article {
+  display: block;
+  margin: auto;
+  text-align: center;
+  background-color: antiquewhite; }
+
+canvas {
+  width: 100%;
+  height: auto;
+  background-color: #eee; }
+
 /*# sourceMappingURL=style.css.map */
