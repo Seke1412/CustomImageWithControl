@@ -12,16 +12,18 @@
     </head>
     <body>
         <section class="demo">
-            <input type="file" value="Upload Image file"/>
+            <input id="file-input" type="file" value="Upload Image file"/>
             <article class="original">
                 <p class="title">Original Image</p>
-                <img src="" alt="original image"/>
+                <img src="" alt="original image" id="originalIMG"/>
             </article>
             <article class="edit-image">
                 <p class="title">Edit Image</p>
-                <img src="" alt="edit-image"/>
+                <img src="" alt="edit-image" id="editIMG"/>
             </article>
         </section>
+        <p class="alert">no error found!</p>
+
         <button>Finish</button>
         <p class="title">FinalImage Image</p>
         <canvas id="final-canvas">
@@ -30,6 +32,7 @@
 
         <script src="libs/jquery.js"></script>
         <script src="libs/TweenMax.min.js"></script>
+        <script src="libs/load-image.all.min.js"></script>
         <script src="js/custom-image-with-control.js" async></script>
         <script src="js/common.js" defer></script>
     </body>

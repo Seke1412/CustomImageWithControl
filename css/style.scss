@@ -2,12 +2,14 @@
     margin:0px;
     padding:0px;
 }
-
+p{
+    font-family: Roboto, Arial;
+}
 
 
 .title{
-    font-family: Roboto;
-    color:crimson;
+
+    color:darkblue;
     margin-top:20px;
     font-size: 20px;
 }
@@ -19,6 +21,15 @@
         text-align: center;
         background-color: antiquewhite;
     }
+}
+
+.alert{
+    display: block;
+    margin:auto;
+    text-align: center;
+    font-size: 25px;
+    color: crimson;
+    text-transform: uppercase;
 }
 
 
