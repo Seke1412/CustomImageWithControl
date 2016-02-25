@@ -1,7 +1,6 @@
 $(function(){
-    'use strict'
+    'use strict';
     trace("document successfully init");
-
 
     var inputBtn = $("#file-input"),
         currentRot = 0,
@@ -9,7 +8,7 @@ $(function(){
         currentY = 0,
         currentSX = 1,
         currentSY = 1,
-        editImage = $("#editIMG"),
+        //editImage = $("#editIMG"),
         alert = $(".alert"),
         currentFile,
         init = function(){
@@ -47,12 +46,18 @@ $(function(){
             if (!(img.src || img instanceof HTMLCanvasElement)) {
                 alert.html("Loading image file failed");
             } else {
-                trace(img.toDataURL());
                 originalImage.src = img.toDataURL();
+                //create editimage;
+                var res = editImage(originalImage,{},finishCreateEditImage);
+                trace(res);
             }
 
+        },
+        finishCreateEditImage = function(){
+            trace("finish create edit image");
         };
     init();
+
 
 })
 

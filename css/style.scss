@@ -23,6 +23,8 @@ p{
     }
 }
 
+
+
 .alert{
     display: block;
     margin:auto;
@@ -34,7 +36,10 @@ p{
 
 
 canvas{
-    width: 100%;
+    //width: 100%;
+    width: 300px;
+    height: 300px;
+
     height:auto;
     background-color: #eee;
 }
