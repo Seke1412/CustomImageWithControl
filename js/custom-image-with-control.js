@@ -1,8 +1,13 @@
 (function($){
     'use strict';
     var currentControl = "none",
-        isMoving = false,
+        pivot = {x:0,y:0},
+        startAngle = {rad:0, deg:0},
+        controlRadius = 16,
+        controlHolder,
+        controlCanvas,
         initPos = {x:0, y:0},
+
         editImage = function(_img, _options, _callback){
 
             var img, options, callback;
@@ -64,24 +69,38 @@
 
             return {x:x,y:y};
         },
-        updateTransform = function(){
+        getAngleFromPoint = function(p0, p1){
+            var dx = p1.x - p0.x;
+            var dy = p1.y - p0.y;
+            var d = Math.sqrt(dx*dx + dy*dy);
+            var angleInRad = dy/d;
+            var angleInDeg = angleInRad*180/Math.PI;
+            return {rad:angleInRad, deg:angleInDeg};
+        },
+        updateTransform = function(_deg){
             trace("transform updating....");
+            controlHolder.style.transform = "rotate("+ _deg +"deg)";
+            controlHolder.style.mozTransform = "rotate("+ _deg +"deg)";
+            controlHolder.style.webkitTransform = "rotate("+ _deg +"deg)";
         };
 
     editImage.initControl = function(){
         trace("start init control");
 
-        var controlHolder = document.createElement("div");
-        controlHolder.style.position = "relative";
+        controlHolder = document.createElement("div");
+        controlHolder.style.position = "absolute";
+        controlHolder.style.display = "block";
+        controlHolder.style.backgroundColor = "rgba(0,255,255,1)";
+
         document.body.appendChild(controlHolder);
 
         //create a canvas and draw all needed control point to it;
-        var controlCanvas = document.createElement("canvas");
+        controlCanvas = document.createElement("canvas");
         controlCanvas.setAttribute("id", "controlHolderCanvas");
         controlCanvas.style.userSelect = "none";
         controlCanvas.style.mozUserSelect = "none";
         controlCanvas.style.webkitUserSelect = "none";
-        //controlCanvas.style.backgroundColor = "rgba(0,0,0,0)";
+        controlCanvas.style.backgroundColor = "rgba(0,255,0,0.5)";
 
         controlCanvas.style.position = "absolute";
 
@@ -93,6 +112,11 @@
 
         controlHolder.appendChild(controlCanvas);
 
+        controlHolder.style.width = controlCanvas.width;
+        controlHolder.style.height = controlCanvas.height;
+        //controlHolder.style.transformOrigin = "50% 50%";
+        //controlHolder.style.mozTransformOrigin = "50% 50%";
+        //controlHolder.style.webkitTransformOrigin = "50% 50%";
 
         // create control point lay on top of canvas;
         var TL = document.createElement("div"),
@@ -105,24 +129,24 @@
             var item = controlArray[i];
             item.style.position = "absolute";
             item.style.backgroundColor = "#ff0000";
-            item.style.width = "16px";
-            item.style.height = "16px";
+            item.style.width = controlRadius + "px";
+            item.style.height = controlRadius + "px";
             if(i == 0){
-                item.style.top = -8 + "px";
+                item.style.top = -controlRadius/2 + "px";
                 item.style.right = "0";
                 item.style.bottom = "0";
-                item.style.left = -8 + "px";
+                item.style.left = -controlRadius/2 + "px";
             }else{
-                item.style.top = (controlCanvas.height - 8) + "px";
+                item.style.top = (controlCanvas.height - controlRadius/2) + "px";
                 item.style.right = "0";
                 item.style.bottom = "0";
-                item.style.left = (controlCanvas.width - 8) + "px";
+                item.style.left = (controlCanvas.width - controlRadius/2) + "px";
             }
 
             item.style.display = "block";
             item.style.zIndex = 2;
             item.style.border = "0px solid #ff0000";
-            item.style.borderRadius = "8px";
+            item.style.borderRadius = controlRadius/2 + "px";
 
             item.setAttribute("control-name", controlNameArray[i]);
             item.addEventListener("mouseover", controlMouseOver);
@@ -156,6 +180,16 @@
             initPos = getMousePosByMouseEvent(e);
 
 
+            var p1 = initPos;
+            pivot = {x:p1.x - controlCanvas.width/2, y:p1.y - controlCanvas.height/2};
+
+            trace("pivot.x : " + pivot.x + " === " + "pivot.y : " + pivot.y);
+            trace("p1.x : " + p1.x + " === " + "p1.y : " + p1.y);
+
+            startAngle = getAngleFromPoint(pivot, p1);
+            trace("testAngle.rad: " + startAngle.rad + " === " + "testAngle.deg : " + startAngle.deg );
+
+
             $.addEventListener("mousemove", stageMouseMove)
             $.addEventListener("mouseup", stageMouseUp);
         }
@@ -169,7 +203,12 @@
             var dx = mousePos.x - initPos.x;
             var dy = mousePos.y - initPos.y;
             trace("d: " + dx + " === "+ dy);
-            //updateTransform();
+
+            var movingAngle = getAngleFromPoint(pivot, mousePos);
+            trace("movingAngle.rad: " + movingAngle.rad + " === " + "movingAngle.deg : " + movingAngle.deg );
+
+            var dAngleInDeg = movingAngle.deg - startAngle.deg;
+            updateTransform(dAngleInDeg);   
         }
 
         function stageMouseUp(e){
