@@ -3,6 +3,9 @@
     var currentControl = "none",
         pivot = {x:0,y:0},
         startAngle = {rad:0, deg:0},
+        movingAngle = {rad:0, deg:0},
+        movedAngle = 0,
+        angleToRotate = 0,
         controlRadius = 16,
         controlHolder,
         controlCanvas,
@@ -69,16 +72,30 @@
 
             return {x:x,y:y};
         },
+        getElementPos = function(element){
+            //var element = document.getElementById(elementID);
+            var rect = element.getBoundingClientRect();
+            var elementLeft,elementTop; //x and y
+            var scrollTop = document.documentElement.scrollTop?
+                document.documentElement.scrollTop:document.body.scrollTop;
+            var scrollLeft = document.documentElement.scrollLeft?
+                document.documentElement.scrollLeft:document.body.scrollLeft;
+            elementTop = rect.top+scrollTop;
+            elementLeft = rect.left+scrollLeft;
+            return {x:elementLeft, y:elementTop};
+        },
         getAngleFromPoint = function(p0, p1){
             var dx = p1.x - p0.x;
             var dy = p1.y - p0.y;
             var d = Math.sqrt(dx*dx + dy*dy);
-            var angleInRad = dy/d;
+
+            var angleInRad = Math.atan2(dy,dx);//dy/d;
             var angleInDeg = angleInRad*180/Math.PI;
+
             return {rad:angleInRad, deg:angleInDeg};
         },
         updateTransform = function(_deg){
-            trace("transform updating....");
+            trace("transform updating....:" + _deg);
             controlHolder.style.transform = "rotate("+ _deg +"deg)";
             controlHolder.style.mozTransform = "rotate("+ _deg +"deg)";
             controlHolder.style.webkitTransform = "rotate("+ _deg +"deg)";
@@ -102,9 +119,11 @@
         controlCanvas.style.webkitUserSelect = "none";
         controlCanvas.style.backgroundColor = "rgba(0,255,0,0.5)";
 
+
+
         controlCanvas.style.position = "absolute";
 
-        //*** Consider this zIndex ***
+        //*** Consider this zIndex ***px
         controlCanvas.style.zIndex = 1;
 
         //get context from canvas;
@@ -112,11 +131,11 @@
 
         controlHolder.appendChild(controlCanvas);
 
-        controlHolder.style.width = controlCanvas.width;
-        controlHolder.style.height = controlCanvas.height;
-        //controlHolder.style.transformOrigin = "50% 50%";
-        //controlHolder.style.mozTransformOrigin = "50% 50%";
-        //controlHolder.style.webkitTransformOrigin = "50% 50%";
+        controlHolder.style.width = controlCanvas.width + "px";
+        controlHolder.style.height = controlCanvas.height + "px";
+        controlHolder.style.transformOrigin = "50% 50%";
+        controlHolder.style.mozTransformOrigin = "50% 50%";
+        controlHolder.style.webkitTransformOrigin = "50% 50%";
 
         // create control point lay on top of canvas;
         var TL = document.createElement("div"),
@@ -128,10 +147,11 @@
         for(var i = 0 ; i<controlArray.length; i++){
             var item = controlArray[i];
             item.style.position = "absolute";
-            item.style.backgroundColor = "#ff0000";
+
             item.style.width = controlRadius + "px";
             item.style.height = controlRadius + "px";
             if(i == 0){
+                item.style.backgroundColor = "#ff0000";
                 item.style.top = -controlRadius/2 + "px";
                 item.style.right = "0";
                 item.style.bottom = "0";
@@ -141,6 +161,7 @@
                 item.style.right = "0";
                 item.style.bottom = "0";
                 item.style.left = (controlCanvas.width - controlRadius/2) + "px";
+                item.style.backgroundColor = "#00ff00";
             }
 
             item.style.display = "block";
@@ -159,6 +180,11 @@
             var target = e.target;
             var targetName = target.getAttribute("control-name");
             trace("mouse over: " + targetName);
+            if(targetName == "TL"){
+                currentControl = "rotate";
+            }else{
+                currentControl = "scale";
+            }
             $.addEventListener("mousedown", stageMouseDown);
 
         }
@@ -167,54 +193,70 @@
             var target = e.target;
             var targetName = target.getAttribute("control-name");
             trace("mouse out: " + targetName);
+
             $.removeEventListener("mousedown", stageMouseDown);
         }
 
         function stageMouseDown(e){
+
             e.stopPropagation();
             var target = e.target;
-            var targetName = target.getAttribute("control-name");
-
-            trace("mouse down: " + targetName);
-
-            initPos = getMousePosByMouseEvent(e);
 
 
-            var p1 = initPos;
-            pivot = {x:p1.x - controlCanvas.width/2, y:p1.y - controlCanvas.height/2};
+            if(currentControl == "rotate"){
+                var tl = getElementPos(TL);
+                var br = getElementPos(BR);
+                initPos = getMousePosByMouseEvent(e);
+                pivot = {x:(tl.x + br.x)/2, y:(tl.y + br.y)/2};
+                startAngle = getAngleFromPoint(pivot, initPos);
 
-            trace("pivot.x : " + pivot.x + " === " + "pivot.y : " + pivot.y);
-            trace("p1.x : " + p1.x + " === " + "p1.y : " + p1.y);
+                trace("pivot.x : " + pivot.x + " === " + "pivot.y : " + pivot.y);
+                trace("p1.x : " + initPos.x + " === " + "p1.y : " + initPos.y);
+                trace("testAngle.rad: " + startAngle.rad + " === " + "testAngle.deg : " + startAngle.deg);
 
-            startAngle = getAngleFromPoint(pivot, p1);
-            trace("testAngle.rad: " + startAngle.rad + " === " + "testAngle.deg : " + startAngle.deg );
+            }else{
+
+            }
 
 
-            $.addEventListener("mousemove", stageMouseMove)
+            $.addEventListener("mousemove", stageMouseMove);
             $.addEventListener("mouseup", stageMouseUp);
         }
 
         function stageMouseMove(e){
             e.stopPropagation();
-            trace("stage mouse is moving...");
-            var mousePos = getMousePosByMouseEvent(e);
-            trace("mousePos: " + mousePos.x + " === "+ mousePos.y);
+            //trace("stage mouse is moving...");
 
-            var dx = mousePos.x - initPos.x;
-            var dy = mousePos.y - initPos.y;
-            trace("d: " + dx + " === "+ dy);
+            //trace("mousePos: " + mousePos.x + " === "+ mousePos.y);
 
-            var movingAngle = getAngleFromPoint(pivot, mousePos);
-            trace("movingAngle.rad: " + movingAngle.rad + " === " + "movingAngle.deg : " + movingAngle.deg );
+            //var dx = mousePos.x - initPos.x;
+            //var dy = mousePos.y - initPos.y;
+            //trace("d: " + dx + " === "+ dy);
 
-            var dAngleInDeg = movingAngle.deg - startAngle.deg;
-            updateTransform(dAngleInDeg);   
+            if(currentControl == "rotate"){
+                var mousePos = getMousePosByMouseEvent(e);
+                movingAngle = getAngleFromPoint(pivot, mousePos);
+                trace("movingAngle.rad: " + movingAngle.rad + " === " + "movingAngle.deg : " + movingAngle.deg );
+                angleToRotate = movingAngle.deg - startAngle.deg;
+                updateTransform(movedAngle + angleToRotate);
+            }else{
+
+            }
+
+
         }
 
         function stageMouseUp(e){
             e.stopPropagation();
+
             $.removeEventListener("mousemove", stageMouseMove);
             $.removeEventListener("mousedown", stageMouseDown);
+            if(currentControl == "rotate") {
+                movedAngle += movingAngle.deg - startAngle.deg;
+            }else{
+
+            }
+
         }
 
         trace("success init edit image control");
