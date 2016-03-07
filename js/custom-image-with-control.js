@@ -1,6 +1,10 @@
 (function($){
     'use strict';
     var currentControl = "none",
+        currentScale = 1,
+        startPos = {x:0,y:0},
+        initPos = {x:0,y:0},
+        translatedPos = {x:0,y:0},
         pivot = {x:0,y:0},
         startAngle = {rad:0, deg:0},
         movingAngle = {rad:0, deg:0},
@@ -9,7 +13,7 @@
         controlRadius = 16,
         controlHolder,
         controlCanvas,
-        initPos = {x:0, y:0},
+        controlInitPos = {x:0, y:0},
 
         editImage = function(_img, _options, _callback){
 
@@ -37,7 +41,7 @@
                 callback = _callback;
             }
 
-            editImage.initControl();
+            editImage.initControl(img);
 
             trace(callback);
 
@@ -94,15 +98,16 @@
 
             return {rad:angleInRad, deg:angleInDeg};
         },
-        updateTransform = function(_deg){
-            trace("transform updating....:" + _deg);
-            controlHolder.style.transform = "rotate("+ _deg +"deg)";
-            controlHolder.style.mozTransform = "rotate("+ _deg +"deg)";
-            controlHolder.style.webkitTransform = "rotate("+ _deg +"deg)";
+        updateTransform = function(_rotate, _scale, xx, yy){
+            controlHolder.style.transform = "rotate("+ _rotate +"deg) scale("+_scale+") translate(" +xx +"px,"+yy +"px)";
+            controlHolder.style.mozTransform = "rotate("+ _rotate +"deg) scale("+_scale+") translate(" +xx +"px,"+yy +"px)";
+            controlHolder.style.webkitTransform = "rotate("+ _rotate +"deg) scale("+_scale+") translate(" +xx +"px,"+yy +"px)";
         };
 
-    editImage.initControl = function(){
+    editImage.initControl = function(img){
         trace("start init control");
+
+        trace(img.clientWidth +" = === == = "+ img.clientHeight);
 
         controlHolder = document.createElement("div");
         controlHolder.style.position = "absolute";
@@ -122,12 +127,17 @@
 
 
         controlCanvas.style.position = "absolute";
+        controlCanvas.width = img.clientWidth;
+        controlCanvas.height = img.clientHeight;
 
         //*** Consider this zIndex ***px
         controlCanvas.style.zIndex = 1;
 
         //get context from canvas;
         var ctx = controlCanvas.getContext('2d');
+        ctx.drawImage(img,0,0);
+
+
 
         controlHolder.appendChild(controlCanvas);
 
@@ -176,20 +186,51 @@
         }
 
 
+        controlHolder.addEventListener("mouseover", holderMouseOver);
+        controlHolder.addEventListener("mouseout", holderMouseOut);
+
+        function holderMouseOver(e){
+            e.stopPropagation();
+            e.preventDefault();
+            trace("holderMouseOver");
+            startPos = getElementPos(e.target);
+            trace("startPos.x: " +  startPos.x + " ---- startPos.y: " +  startPos.y);
+            $.addEventListener("mousedown", stageMouseDown);
+            currentControl = "move";
+        }
+
+        function holderMouseOut(e){
+            e.stopPropagation();
+            e.preventDefault();
+            trace("holderMouseOut");
+            $.removeEventListener("mousedown", stageMouseDown);
+
+        }
+
         function controlMouseOver(e){
+            e.stopPropagation();
+            e.preventDefault();
             var target = e.target;
             var targetName = target.getAttribute("control-name");
             trace("mouse over: " + targetName);
             if(targetName == "TL"){
                 currentControl = "rotate";
-            }else{
+            }
+
+            if(targetName == "BR"){
                 currentControl = "scale";
             }
+
+
+
             $.addEventListener("mousedown", stageMouseDown);
 
         }
 
         function controlMouseOut(e){
+            e.stopPropagation();
+            e.preventDefault();
+
             var target = e.target;
             var targetName = target.getAttribute("control-name");
             trace("mouse out: " + targetName);
@@ -202,19 +243,28 @@
             e.stopPropagation();
             var target = e.target;
 
+            if(currentControl == "move"){
+                initPos = getMousePosByMouseEvent(e);
+                trace("initPos.x: " + initPos.x + " === "+ "initPos.y: " + initPos.y);
+            }else{
 
-            if(currentControl == "rotate"){
                 var tl = getElementPos(TL);
                 var br = getElementPos(BR);
-                initPos = getMousePosByMouseEvent(e);
                 pivot = {x:(tl.x + br.x)/2, y:(tl.y + br.y)/2};
-                startAngle = getAngleFromPoint(pivot, initPos);
 
-                trace("pivot.x : " + pivot.x + " === " + "pivot.y : " + pivot.y);
-                trace("p1.x : " + initPos.x + " === " + "p1.y : " + initPos.y);
-                trace("testAngle.rad: " + startAngle.rad + " === " + "testAngle.deg : " + startAngle.deg);
+                controlInitPos = getMousePosByMouseEvent(e);
 
-            }else{
+                if(currentControl == "rotate"){
+                    startAngle = getAngleFromPoint(pivot, controlInitPos);
+                    trace("pivot.x : " + pivot.x + " === " + "pivot.y : " + pivot.y);
+                    trace("p1.x : " + controlInitPos.x + " === " + "p1.y : " + controlInitPos.y);
+                    trace("testAngle.rad: " + startAngle.rad + " === " + "testAngle.deg : " + startAngle.deg);
+
+                }
+
+                if(currentControl == "scale") {
+
+                }
 
             }
 
@@ -225,22 +275,40 @@
 
         function stageMouseMove(e){
             e.stopPropagation();
-            //trace("stage mouse is moving...");
 
-            //trace("mousePos: " + mousePos.x + " === "+ mousePos.y);
 
-            //var dx = mousePos.x - initPos.x;
-            //var dy = mousePos.y - initPos.y;
-            //trace("d: " + dx + " === "+ dy);
+            var mousePos = getMousePosByMouseEvent(e);
+
+            if(currentControl == "move"){
+                var xx = mousePos.x - initPos.x;
+                var yy = mousePos.y - initPos.y;
+                updateTransform(movedAngle, currentScale, translatedPos.x + xx, translatedPos.y + yy);
+            }
+
 
             if(currentControl == "rotate"){
-                var mousePos = getMousePosByMouseEvent(e);
                 movingAngle = getAngleFromPoint(pivot, mousePos);
                 trace("movingAngle.rad: " + movingAngle.rad + " === " + "movingAngle.deg : " + movingAngle.deg );
                 angleToRotate = movingAngle.deg - startAngle.deg;
-                updateTransform(movedAngle + angleToRotate);
-            }else{
+                //updateTransformRotate(movedAngle + angleToRotate);
+                updateTransform(movedAngle + angleToRotate, currentScale, translatedPos.x, translatedPos.y);
+            }
+            if(currentControl == "scale"){
+                var dxInit = controlInitPos.x - pivot.x;
+                var dyInit = controlInitPos.y - pivot.y;
+                var dInit = Math.sqrt(dxInit*dxInit + dyInit*dyInit);
 
+                var dxMouse = mousePos.x - pivot.x;
+                var dyMouse = mousePos.y - pivot.y;
+                var dMouse = Math.sqrt(dxMouse*dxMouse + dyMouse*dyMouse);
+
+                var d = dMouse-dInit;
+
+                //var dir = (dMouse > dInit) ? 1 : -1;
+                var dscale = (d/100);
+                trace("distance for scale: " + dscale);
+                //updateTransformScale(currentScale + dscale);
+                updateTransform(movedAngle, currentScale + dscale, translatedPos.x, translatedPos.y);
             }
 
 
@@ -251,9 +319,40 @@
 
             $.removeEventListener("mousemove", stageMouseMove);
             $.removeEventListener("mousedown", stageMouseDown);
+
+            var mousePos = getMousePosByMouseEvent(e);
+
+
             if(currentControl == "rotate") {
                 movedAngle += movingAngle.deg - startAngle.deg;
-            }else{
+            }
+            if(currentControl == "scale") {
+
+
+                var dxInit = controlInitPos.x - pivot.x;
+                var dyInit = controlInitPos.y - pivot.y;
+                var dInit = Math.sqrt(dxInit*dxInit + dyInit*dyInit);
+
+                var dxMouse = mousePos.x - pivot.x;
+                var dyMouse = mousePos.y - pivot.y;
+                var dMouse = Math.sqrt(dxMouse*dxMouse + dyMouse*dyMouse);
+
+                var d = dMouse-dInit;
+
+                var dscale = d/100;
+                currentScale += dscale;
+            }
+
+
+            if(currentControl == "move"){
+
+                var xx = mousePos.x - initPos.x;
+                var yy = mousePos.y - initPos.y;
+                translatedPos.x = xx;
+                translatedPos.y = yy;
+
+                //startPos.x = xx;
+                //startPos.y = yy;
 
             }
 
