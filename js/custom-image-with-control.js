@@ -2,6 +2,11 @@
     'use strict';
     var currentControl = "none",
         currentScale = 1,
+        //all function must be control by a bool value to prevent this function run over the others
+        isMoving = false,
+        isScaling = false,
+        isRotating = false,
+
         startPos = {x:0,y:0},
         initPos = {x:0,y:0},
         translatedPos = {x:0,y:0},
@@ -14,6 +19,8 @@
         controlHolder,
         controlCanvas,
         controlInitPos = {x:0, y:0},
+        controlArray = [],
+        isHideControl = false,
 
         editImage = function(_img, _options, _callback){
 
@@ -51,7 +58,8 @@
 
             return {
                 error:0,
-                mess: "success"
+                mess: "success",
+                res:editImage
             }
         },
         getMousePosByMouseEvent = function(e){
@@ -65,8 +73,7 @@
                 x = e.clientX + document.body.scrollLeft + document.documentElement.scrollLeft;
                 y = e.clientY + document.body.scrollTop + document.documentElement.scrollTop;
             }
-            //x -= element.offsetLeft;
-            //y -= element.offsetTop;
+
             if(x < 0){
                 x = 0;
             }
@@ -98,11 +105,28 @@
 
             return {rad:angleInRad, deg:angleInDeg};
         },
-        updateTransform = function(_rotate, _scale, xx, yy){
-            controlHolder.style.transform = "rotate("+ _rotate +"deg) scale("+_scale+") translate(" +xx +"px,"+yy +"px)";
-            controlHolder.style.mozTransform = "rotate("+ _rotate +"deg) scale("+_scale+") translate(" +xx +"px,"+yy +"px)";
-            controlHolder.style.webkitTransform = "rotate("+ _rotate +"deg) scale("+_scale+") translate(" +xx +"px,"+yy +"px)";
+        updateTransform = function(_rotate, _scale){
+            controlHolder.style.transform = "rotate("+ _rotate +"deg) scale("+_scale+")";
+            controlHolder.style.mozTransform = "rotate("+ _rotate +"deg) scale("+_scale+")";
+            controlHolder.style.webkitTransform = "rotate("+ _rotate +"deg) scale("+_scale+")";
         };
+
+    editImage.toggleController = function(){
+        if(controlArray.length > 0){
+            for(var i = 0; i<controlArray.length; i++){
+                var menu = controlArray[i];
+                if(!isHideControl){
+                    menu.style.opacity = 0;
+                    menu.style.visibility = "none";
+                }else{
+                    menu.style.opacity = 1;
+                    menu.style.visibility = "visible";
+                }
+
+            }
+            isHideControl = !isHideControl;
+        }
+    };
 
     editImage.initControl = function(img){
         trace("start init control");
@@ -150,9 +174,8 @@
         // create control point lay on top of canvas;
         var TL = document.createElement("div"),
             BR = document.createElement("div");
-
-        var controlArray = [TL, BR],
-            controlNameArray = ['TL', 'BR'];
+        controlArray = [TL, BR];
+        var controlNameArray = ['TL', 'BR'];
 
         for(var i = 0 ; i<controlArray.length; i++){
             var item = controlArray[i];
@@ -192,19 +215,23 @@
         function holderMouseOver(e){
             e.stopPropagation();
             e.preventDefault();
-            trace("holderMouseOver");
-            startPos = getElementPos(e.target);
-            trace("startPos.x: " +  startPos.x + " ---- startPos.y: " +  startPos.y);
-            $.addEventListener("mousedown", stageMouseDown);
-            currentControl = "move";
+            if(!isRotating && !isScaling){
+                trace("holderMouseOver");
+                startPos = getElementPos(e.target);
+                trace("startPos.x: " +  startPos.x + " ---- startPos.y: " +  startPos.y);
+                $.addEventListener("mousedown", stageMouseDown);
+                currentControl = "move";
+            }
         }
 
         function holderMouseOut(e){
             e.stopPropagation();
             e.preventDefault();
             trace("holderMouseOut");
-            $.removeEventListener("mousedown", stageMouseDown);
-
+            if(!isMoving){
+                $.removeEventListener("mousedown", stageMouseDown);
+                $.removeEventListener("mousemove", stageMouseMove);
+            }
         }
 
         function controlMouseOver(e){
@@ -244,13 +271,19 @@
             var target = e.target;
 
             if(currentControl == "move"){
-                initPos = getMousePosByMouseEvent(e);
+                isMoving = true;
+                var mousePos = getMousePosByMouseEvent(e);
+                initPos.x = mousePos.x - startPos.x;
+                initPos.y = mousePos.y - startPos.y;
+
                 trace("initPos.x: " + initPos.x + " === "+ "initPos.y: " + initPos.y);
             }else{
 
                 var tl = getElementPos(TL);
                 var br = getElementPos(BR);
-                pivot = {x:(tl.x + br.x)/2, y:(tl.y + br.y)/2};
+
+
+                pivot = {x:translatedPos.x + (tl.x + br.x)/2, y: translatedPos.y + (tl.y + br.y)/2};
 
                 controlInitPos = getMousePosByMouseEvent(e);
 
@@ -259,11 +292,11 @@
                     trace("pivot.x : " + pivot.x + " === " + "pivot.y : " + pivot.y);
                     trace("p1.x : " + controlInitPos.x + " === " + "p1.y : " + controlInitPos.y);
                     trace("testAngle.rad: " + startAngle.rad + " === " + "testAngle.deg : " + startAngle.deg);
-
+                    isRotating = true;
                 }
 
-                if(currentControl == "scale") {
-
+                if(currentControl == "scale"){
+                    isScaling = true;
                 }
 
             }
@@ -279,19 +312,21 @@
 
             var mousePos = getMousePosByMouseEvent(e);
 
+            //position of holder must be ruled by top and left, b/c transform - translate will cause terrible side-effect
             if(currentControl == "move"){
                 var xx = mousePos.x - initPos.x;
                 var yy = mousePos.y - initPos.y;
-                updateTransform(movedAngle, currentScale, translatedPos.x + xx, translatedPos.y + yy);
+                controlHolder.style.left = xx + "px";
+                controlHolder.style.top = yy + "px";
             }
 
 
             if(currentControl == "rotate"){
                 movingAngle = getAngleFromPoint(pivot, mousePos);
-                trace("movingAngle.rad: " + movingAngle.rad + " === " + "movingAngle.deg : " + movingAngle.deg );
+                //trace("movingAngle.rad: " + movingAngle.rad + " === " + "movingAngle.deg : " + movingAngle.deg );
                 angleToRotate = movingAngle.deg - startAngle.deg;
                 //updateTransformRotate(movedAngle + angleToRotate);
-                updateTransform(movedAngle + angleToRotate, currentScale, translatedPos.x, translatedPos.y);
+                updateTransform(movedAngle + angleToRotate, currentScale);
             }
             if(currentControl == "scale"){
                 var dxInit = controlInitPos.x - pivot.x;
@@ -308,7 +343,7 @@
                 var dscale = (d/100);
                 trace("distance for scale: " + dscale);
                 //updateTransformScale(currentScale + dscale);
-                updateTransform(movedAngle, currentScale + dscale, translatedPos.x, translatedPos.y);
+                updateTransform(movedAngle, currentScale + dscale);
             }
 
 
@@ -317,14 +352,16 @@
         function stageMouseUp(e){
             e.stopPropagation();
 
-            $.removeEventListener("mousemove", stageMouseMove);
-            $.removeEventListener("mousedown", stageMouseDown);
+
 
             var mousePos = getMousePosByMouseEvent(e);
 
 
             if(currentControl == "rotate") {
                 movedAngle += movingAngle.deg - startAngle.deg;
+                $.removeEventListener("mousemove", stageMouseMove);
+                $.removeEventListener("mousedown", stageMouseDown);
+                isRotating = false;
             }
             if(currentControl == "scale") {
 
@@ -341,19 +378,22 @@
 
                 var dscale = d/100;
                 currentScale += dscale;
+                $.removeEventListener("mousemove", stageMouseMove);
+                $.removeEventListener("mousedown", stageMouseDown);
+
+                isScaling = false;
             }
 
 
             if(currentControl == "move"){
-
+                //saved the moved position for the next move use as startPos
                 var xx = mousePos.x - initPos.x;
                 var yy = mousePos.y - initPos.y;
-                translatedPos.x = xx;
-                translatedPos.y = yy;
-
-                //startPos.x = xx;
-                //startPos.y = yy;
-
+                startPos.x = xx;
+                startPos.y = yy;
+                //
+                $.removeEventListener("mousemove", stageMouseMove);
+                isMoving = false;
             }
 
         }

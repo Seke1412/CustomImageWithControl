@@ -3,6 +3,7 @@ $(function(){
     trace("document successfully init");
 
     var inputBtn = $("#file-input"),
+        finishBtn = $("#finishBtn"),
         currentRot = 0,
         currentX = 0,
         currentY = 0,
@@ -11,8 +12,10 @@ $(function(){
         //editImage = $("#editIMG"),
         alert = $(".alert"),
         currentFile,
+        customImage,
         init = function(){
             inputBtn.on("change", onSelectImageComplete);
+            finishBtn.on("click", onClickFinish);
         },
         onSelectImageComplete = function(e){
             e.preventDefault();
@@ -48,13 +51,17 @@ $(function(){
             } else {
                 originalImage.src = img.toDataURL();
                 //create editimage;
-                var res = editImage(originalImage,{},finishCreateEditImage);
-                trace(res);
+                customImage = editImage(originalImage,{},finishCreateEditImage).res;
+                trace(customImage);
             }
 
         },
         finishCreateEditImage = function(){
             trace("finish create edit image");
+        },
+        onClickFinish = function(e){
+            trace("finish click");
+            customImage.toggleController();
         };
     init();
 
